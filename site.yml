@@ -1,0 +1,10 @@
+ - hosts: work
+   tasks:
+    
+
+
+     - name: make file from shablon
+       template: 
+         src: ./templates/1.j2
+         dest: ./test111.txt
+     
