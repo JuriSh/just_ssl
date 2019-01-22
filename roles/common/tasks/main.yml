@@ -1,8 +1,8 @@
 ---
 - name: Generate the RSA keys
-  command: openssl genrsa -out {{ item }}.key {{ openvpn_key_size }}
+  command: openssl genrsa -out {{ item }}.key {{ ovpn_key_size }}
   args:
-    chdir: "{{ openvpn_path }}"
+    chdir: "{{ ovpn_path }}"
     creates: "{{ item }}.key"
   with_items:
     - ca
@@ -10,20 +10,20 @@
 
 - name: Create directories for clients
   file:
-    path: "{{ openvpn_path}}/{{ item }}"
+    path: "{{ ovpn_path}}/{{ item }}"
     state: directory
-  with_items: "{{ openvpn_clients }}"
+  with_items: "{{ ovpn_clients }}"
 
 - name: Generate RSA keys for the Clients
-  command: openssl genrsa -out {{ item }}.key {{ openvpn_key_size }}
+  command: openssl genrsa -out {{ item }}.key {{ ovpn_key_size }}
   args:
-    chdir: "{{ openvpn_path }}/{{ item }}"
+    chdir: "{{ ovpn_path }}/{{ item }}"
     creates: "{{ item }}.key"
-  with_items: "{{ openvpn_clients }}"
+  with_items: "{{ ovpn_clients }}"
 
 - name: Set the proper permissions on all RSA keys
   file:
-    path: "{{ openvpn_path }}"
+    path: "{{ ovpn_path }}"
     owner: root
     group: root
     mode: 0600
@@ -31,70 +31,70 @@
     recurse: yes
  
 - name: Generate CA certificate
-  command: openssl req -nodes -batch -new -x509 -key {{ openvpn_ca }}.key -out {{ openvpn_ca }}.crt
-            -days {{ openvpn_days_valid }} -subj "{{ openssl_request_subject }}/CN=ca-certificate"
+  command: openssl req -nodes -batch -new -x509 -key {{ ovpn_ca }}.key -out {{ ovpn_ca }}.crt
+            -days {{ ovpn_days_valid }} -subj "{{ openssl_request_subject }}/CN=ca-certificate"
   args:
-    creates: "{{ openvpn_ca }}.crt"
+    creates: "{{ ovpn_ca }}.crt"
 
 
 - name: Generate the CSR for the Server
-  command: openssl req -batch -extensions server -new -key server.key -out server.csr -config {{ openvpn_path }}/openssl-server-certificate.cnf
+  command: openssl req -batch -extensions server -new -key server.key -out server.csr -config {{ ovpn_path }}/openssl-server-certificate.cnf
   args:
-    chdir: "{{ openvpn_path }}"
+    chdir: "{{ ovpn_path }}"
     creates: server.csr
 
 - name: Generate the Certificate for the Server
   command: openssl ca -batch -extensions server -in server.csr -out server.crt -config openssl-server-certificate.cnf
   args:
-    chdir: "{{ openvpn_path }}"
+    chdir: "{{ ovpn_path }}"
     creates: server.crt
 
 - name: Generate CSRs for the clients
   command: openssl req -new -key {{ item }}.key -out {{ item }}.csr -subj "{{ openssl_request_subject }}/CN={{ item }}"
   args:
-    chdir: "{{ openvpn_path }}/{{ item }}"
+    chdir: "{{ ovpn_path }}/{{ item }}"
     creates: "{{ item }}.csr"
-  with_items: "{{ openvpn_clients }}"
+  with_items: "{{ ovpn_clients }}"
 
 - name: Generate certificates for the clients
-  command: openssl x509 -CA {{ openvpn_ca }}.crt -CAkey {{ openvpn_ca }}.key -CAcreateserial -req -days {{ openvpn_days_valid }} -in {{ item }}.csr -out {{ item }}.crt
+  command: openssl x509 -CA {{ ovpn_ca }}.crt -CAkey {{ ovpn_ca }}.key -CAcreateserial -req -days {{ ovpn_days_valid }} -in {{ item }}.csr -out {{ item }}.crt
   args:
     creates: "{{ item }}.crt"
-    chdir: "{{ openvpn_path }}/{{ item }}"
-  with_items: "{{ openvpn_clients }}"
+    chdir: "{{ ovpn_path }}/{{ item }}"
+  with_items: "{{ ovpn_clients }}"
            
 - name: Generate the HMAC firewall key
-  command: openvpn --genkey --secret {{ openvpn_hmac_firewall }}
+  command: ovpn --genkey --secret {{ ovpn_hmac_firewall }}
   args:
-    creates: "{{ openvpn_hmac_firewall }}"
+    creates: "{{ ovpn_hmac_firewall }}"
 
 
 - name: Register client certificate contents
   command: cat {{ item }}.crt
   args:
-    chdir: "{{ openvpn_path }}/{{ item }}"
-  with_items: "{{ openvpn_clients }}"
-  register: openvpn_client_certificates
+    chdir: "{{ ovpn_path }}/{{ item }}"
+  with_items: "{{ ovpn_clients }}"
+  register: ovpn_client_certificates
 
 - name: Register client key contents
   command: cat {{ item }}.key
   args:
-    chdir: "{{ openvpn_path }}/{{ item }}"
-  with_items: "{{ openvpn_clients }}"
-  register: openvpn_client_keys
+    chdir: "{{ ovpn_path }}/{{ item }}"
+  with_items: "{{ ovpn_clients }}"
+  register: ovpn_client_keys
 
 - name: Create the client configs
   template:
     src: client.cnf.j2
-    dest: "{{ openvpn_path }}/{{ item[0] }}/{{ openvpn_server }}.ovpn"
+    dest: "{{ ovpn_path }}/{{ item[0] }}/{{ ovpn_server }}.ovpn"
   no_log: yes
   with_together:
-    - "{{ openvpn_clients }}"
-    - "{{ openvpn_client_certificates.results }}"
-    - "{{ openvpn_client_keys.results }}"
+    - "{{ ovpn_clients }}"
+    - "{{ ovpn_client_certificates.results }}"
+    - "{{ ovpn_client_keys.results }}"
 
 - name: Generate Diffie-Hellman parameters (this will take a while)
-  command: openssl dhparam -out {{ openvpn_dhparam }} {{ openvpn_key_size }} -dsaparam
+  command: openssl dhparam -out {{ ovpn_dhparam }} {{ ovpn_key_size }} -dsaparam
   args:
-    creates: "{{ openvpn_dhparam }}"
+    creates: "{{ ovpn_dhparam }}"
 

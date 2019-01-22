@@ -1,6 +1,6 @@
 ---
- - hosts: openvpn
-   become: yes
+ - hosts: work
+#   become: yes
    gather_facts: yes
    roles:
-     - openvpn
+     - common
