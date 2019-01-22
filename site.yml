@@ -1,10 +1,6 @@
- - hosts: work
-   tasks:
-    
-
-
-     - name: make file from shablon
-       template: 
-         src: ./templates/1.j2
-         dest: ./test111.txt
-     
+---
+ - hosts: openvpn
+   become: yes
+   gather_facts: yes
+   roles:
+     - openvpn
